@@ -6,9 +6,11 @@ import threading
 import cv2
 from threading import Thread
 from .decorators import accepts
+from .realtime_plot.RealtimeDataMessage import *
+from .realtime_plot.SensorMeshBase import *
 
 
-class Tello:
+class Tello(SensorMeshBase):
     """Python wrapper to interact with the Ryze Tello drone using the official Tello api.
     Tello API documentation:
     https://dl-cdn.ryzerobotics.com/downloads/tello/20180910/Tello%20SDK%20Documentation%20EN_1.3.pdf
@@ -73,28 +75,37 @@ class Tello:
                  enable_exceptions=True,
                  retry_count=3):
 
+        super().__init__()
         self.address = (host, port)
         self.response = None
         self.response_state = None  # to attain the response of the states
         self.stream_on = False
         self.enable_exceptions = enable_exceptions
         self.retry_count = retry_count
+        self.msgParser = MessageParser()
+        self.set_upstream_topic('tello_edu')
+        self.ticks_start = time.perf_counter()*1000
+        self.runtime = time.perf_counter()*1000-self.ticks_start
 
         if client_socket:
             self.clientSocket = client_socket
         else:
             self.clientSocket = socket.socket(socket.AF_INET,  # Internet
                                               socket.SOCK_DGRAM)  # UDP
-            self.clientSocket.bind(('', self.UDP_PORT))  # For UDP response (receiving data)
+            # For UDP response (receiving data)
+            self.clientSocket.bind(('', self.UDP_PORT))
 
         self.stateSocket = socket.socket(socket.AF_INET,
                                          socket.SOCK_DGRAM)
-        self.stateSocket.bind(('', self.STATE_UDP_PORT))  # for accessing the states of Tello
+        # for accessing the states of Tello
+        self.stateSocket.bind(('', self.STATE_UDP_PORT))
 
         # Run tello udp receiver on background
         thread1 = threading.Thread(target=self.run_udp_receiver, args=())
         # Run state reciever on background
-        thread2 = threading.Thread(target=self.get_states, args=())
+        # thread2 = threading.Thread(target=self.get_states, args=())
+        # Run state reciever and publish to server on background
+        thread2 = threading.Thread(target=self.get_states, args=(True,))
 
         thread1.daemon = True
         thread2.daemon = True
@@ -106,43 +117,61 @@ class Tello:
         in order to not block the main thread."""
         while True:
             try:
-                self.response, _ = self.clientSocket.recvfrom(1024)  # buffer size is 1024 bytes
+                self.response, _ = self.clientSocket.recvfrom(
+                    1024)  # buffer size is 1024 bytes
             except Exception as e:
                 self.LOGGER.error(e)
                 break
 
-    def get_states(self):
+    def get_states(self, upstream_enable=False):
         """This runs on background to recieve the state of Tello"""
         while True:
             try:
                 self.response_state, _ = self.stateSocket.recvfrom(256)
                 if self.response_state != 'ok':
-                    self.response_state = self.response_state.decode('ASCII')
-                    list = self.response_state.replace(';', ':').split(':')
-                    self.pitch = int(list[1])
-                    self.roll = int(list[3])
-                    self.yaw = int(list[5])
-                    self.speed_x = int(list[7])
-                    self.speed_y = int(list[9])
-                    self.speed_z = int(list[11])
-                    self.temperature_lowest = int(list[13])
-                    self.temperature_highest = int(list[15])
-                    self.distance_tof = int(list[17])
-                    self.height = int(list[19])
-                    self.battery = int(list[21])
-                    self.barometer = float(list[23])
-                    self.flight_time = float(list[25])
-                    self.acceleration_x = float(list[27])
-                    self.acceleration_y = float(list[29])
-                    self.acceleration_z = float(list[31])
-                    self.attitude = {'pitch': int(list[1]), 'roll': int(list[3]), 'yaw': int(list[5])}
+                    # format data with header and add extra runtime data
+                    self.runtime = time.perf_counter()*1000-self.ticks_start
+                    extra_data = 'runtime:{}:'.format(str(int(self.runtime)))
+                    header = MessageFormatHeader.HEADER_DATA.value + \
+                        MessageFormatSeparator.SEPARATOR_HEAD.value
+                    self.response_state = header + extra_data + \
+                        self.response_state.decode('ASCII').replace(';', ':')
+                    print(self.response_state)
+                    # publish data to server
+                    if upstream_enable:
+                        self.upstream.publish(self.topic, self.response_state)
+                    # decode and save states
+                    decoded_response_state = self.msgParser.decode(
+                        message=self.response_state, ret_type=RET_TYPE.DICT)
+                    self.pitch = decoded_response_state['pitch']
+                    self.roll = decoded_response_state['roll']
+                    self.yaw = decoded_response_state['yaw']
+                    self.speed_x = decoded_response_state['vgx']
+                    self.speed_y = decoded_response_state['vgy']
+                    self.speed_z = decoded_response_state['vgz']
+                    self.temperature_lowest = decoded_response_state['templ']
+                    self.temperature_highest = decoded_response_state['temph']
+                    self.distance_tof = decoded_response_state['tof']
+                    self.height = decoded_response_state['h']
+                    self.battery = decoded_response_state['bat']
+                    self.barometer = decoded_response_state['baro']
+                    self.flight_time = decoded_response_state['time']
+                    self.acceleration_x = decoded_response_state['agx']
+                    self.acceleration_y = decoded_response_state['agy']
+                    self.acceleration_z = decoded_response_state['agz']
+                    self.attitude = {'pitch': self.pitch,
+                                     'roll': self.roll, 'yaw': self.yaw}
+                    self.LOGGER.debug('get states')
+                    time.sleep(0.5)
             except Exception as e:
                 self.LOGGER.error(e)
-                self.LOGGER.error("Response was is {}".format(self.response_state))
+                self.LOGGER.error(
+                    "Response was is {}".format(self.response_state))
                 break
 
     def get_udp_video_address(self):
-        return 'udp://@' + self.VS_UDP_IP + ':' + str(self.VS_UDP_PORT)  # + '?overrun_nonfatal=1&fifo_size=5000'
+        # + '?overrun_nonfatal=1&fifo_size=5000'
+        return 'udp://@' + self.VS_UDP_IP + ':' + str(self.VS_UDP_PORT)
 
     def get_video_capture(self):
         """Get the VideoCapture object from the camera drone
@@ -165,7 +194,8 @@ class Tello:
             BackgroundFrameRead
         """
         if self.background_frame_read is None:
-            self.background_frame_read = BackgroundFrameRead(self, self.get_udp_video_address()).start()
+            self.background_frame_read = BackgroundFrameRead(
+                self, self.get_udp_video_address()).start()
         return self.background_frame_read
 
     def stop_video_capture(self):
@@ -302,7 +332,8 @@ class Tello:
                 return int(response)
             else:
                 try:
-                    return float(response)  # isdigit() is False when the number is a float(barometer)
+                    # isdigit() is False when the number is a float(barometer)
+                    return float(response)
                 except ValueError:
                     return response
         else:
@@ -310,7 +341,8 @@ class Tello:
 
     def return_error_on_send_command(self, command, response, enable_exceptions):
         """Returns False and print an informative result code to show unsuccessful response"""
-        msg = 'Command ' + command + ' was unsuccessful. Message: ' + str(response)
+        msg = 'Command ' + command + \
+            ' was unsuccessful. Message: ' + str(response)
         if enable_exceptions:
             raise Exception(msg)
         else:
@@ -632,8 +664,10 @@ class Tello:
         else:
             self.last_rc_control_sent = int(time.time() * 1000)
             return self.send_command_without_return('rc %s %s %s %s' % (self.round_to_100(left_right_velocity),
-                                                                        self.round_to_100(forward_backward_velocity),
-                                                                        self.round_to_100(up_down_velocity),
+                                                                        self.round_to_100(
+                                                                            forward_backward_velocity),
+                                                                        self.round_to_100(
+                                                                            up_down_velocity),
                                                                         self.round_to_100(yaw_velocity)))
 
     @accepts(x=int)
@@ -706,7 +740,8 @@ class Tello:
             int: pitch roll yaw
         """
         r = self.send_read_command('attitude?').replace(';', ':').split(':')
-        return dict(zip(r[::2], [int(i) for i in r[1::2]]))  # {'pitch': xxx, 'roll': xxx, 'yaw': xxx}
+        # {'pitch': xxx, 'roll': xxx, 'yaw': xxx}
+        return dict(zip(r[::2], [int(i) for i in r[1::2]]))
 
     def get_barometer(self):
         """Get barometer value (m)

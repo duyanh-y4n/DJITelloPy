@@ -4,7 +4,7 @@
 # Author          : Duy Anh Pham <duyanh.y4n.pham@gmail.com>
 # Date            : 22.03.2020
 # Last Modified By: Duy Anh Pham <duyanh.y4n.pham@gmail.com>
-from TimeStamp import TimeStamp
+from .TimeStamp import TimeStamp
 from collections import deque
 import numpy as np
 from enum import Enum
