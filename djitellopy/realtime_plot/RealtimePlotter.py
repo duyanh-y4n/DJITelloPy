@@ -4,7 +4,7 @@
 # Author          : Duy Anh Pham <duyanh.y4n.pham@gmail.com>
 # Date            : 23.03.2020
 # Last Modified By: Duy Anh Pham <duyanh.y4n.pham@gmail.com>
-from DataPlot import *
+from .DataPlot import *
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -50,11 +50,14 @@ class RealtimePlotter(object):
         self.lines = []
         # set labels and legends
         # if y_labels == []:
-        if len(y_labels) != self.dataplot.row:
-            self.y_labels = []
-            for i in range(self.dataplot.row):
-                self.y_labels.append('sensor '+str(i))
+        if len(y_labels) > self.dataplot.row:
+            self.y_labels = y_labels[:self.dataplot.row]
+        elif len(y_labels) < self.dataplot.row:
+            self.y_labels = y_labels
+            for i in range(self.dataplot.row-len(y_labels)):
+                self.y_labels.append('unknown' + str(i))
         else:
+            print('set labels ok')
             self.y_labels = y_labels
         if x_label == '' and self.dataplot.option == DataplotOption.TIMESTAMP_AUTO:
             self.axes.set_xlabel(

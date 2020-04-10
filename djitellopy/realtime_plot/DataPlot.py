@@ -4,7 +4,7 @@
 # Author          : Duy Anh Pham <duyanh.y4n.pham@gmail.com>
 # Date            : 22.03.2020
 # Last Modified By: Duy Anh Pham <duyanh.y4n.pham@gmail.com>
-from TimeStamp import TimeStamp
+from .TimeStamp import TimeStamp
 from collections import deque
 import numpy as np
 from enum import Enum
@@ -65,6 +65,9 @@ class DataPlot(object):
             self.timestamp = TimeStamp(time_type=time_type)
             self.time_ticks = deque(maxlen=col)
         if self.option == DataplotOption.TIMESTAMP_CUSTOM:
+            # update row number, last row will be save as time ticks
+            self.data_regs.pop()
+            self.row = len(self.data_regs)
             self.time_ticks = deque(maxlen=col)
 
     def __str__(self):
