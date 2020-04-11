@@ -9,57 +9,102 @@ from djitellopy.realtime_plot.RealtimePlotter import *
 import redis
 import numpy as np
 import traceback
+import matplotlib
 
 
 # define data to get from db
-sensorMeshList = ['baro', 'h', 'tof', 'runtime']
-row = len(sensorMeshList)
-data_len = 200
+# sensorMeshList = ['baro', 'h', 'tof', 'runtime']
+# row = len(sensorMeshList)
+data_len = 300
 plot_update_interval = 0.005
-
-option = DataplotOption.TIMESTAMP_CUSTOM
-dataplot = DataPlot(row, data_len, option=option)
-
-realtimeplotter = RealtimePlotter(dataplot)
-
 datasource = redis.StrictRedis(host='localhost', port=6379, db=0)
 
+plt.figure()
 
-fig, axes = plt.subplots()
-plt.title('Data Live Stream with redis')
-# plt.show()
+baro_axes = plt.subplot(3, 1, 1)
+plt.title('tello_edu sensors')
+baro_data_list = ['baro', 'runtime']
+baro_ylim = [-47, -57]
+baro_option = DataplotOption.TIMESTAMP_CUSTOM
+baro_dataplot = DataPlot(2, data_len, option=baro_option)
+baro_plot = RealtimePlotter(baro_dataplot)
+baro_plot.config_plots(baro_axes, y_labels=baro_data_list, ylim=baro_ylim)
+baro_plot.axes.set_xlabel('time in ms')
+baro_plot.axes.set_ylabel('barometer in cmHg')
 
-realtimeplotter.config_plots(axes, y_labels=sensorMeshList, ylim=[0, 70])
+
+tof_axes = plt.subplot(3, 1, 2)
+tof_data_list = ['tof', 'runtime']
+tof_ylim = [-10, 500]
+tof_option = DataplotOption.TIMESTAMP_CUSTOM
+tof_dataplot = DataPlot(2, data_len, option=tof_option)
+tof_plot = RealtimePlotter(tof_dataplot)
+tof_plot.config_plots(tof_axes, y_labels=tof_data_list, ylim=tof_ylim)
+tof_plot.axes.set_xlabel('time in ms')
+tof_plot.axes.set_ylabel('vertical distance in cm')
+
+h_axes = plt.subplot(3, 1, 3)
+h_ylim = [-50, 300]
+h_data_list = ['h', 'runtime']
+h_option = DataplotOption.TIMESTAMP_CUSTOM
+h_dataplot = DataPlot(2, data_len, option=h_option)
+h_plot = RealtimePlotter(h_dataplot)
+h_plot.config_plots(h_axes, y_labels=h_data_list, ylim=h_ylim)
+h_plot.axes.set_xlabel('time in ms')
+tof_plot.axes.set_ylabel('height in cm')
+
 
 if __name__ == "__main__":
     while True:
-        # clear all cached (inc. corrupted data)
-        realtimeplotter.dataplot.clear_data_regs()
-
-        # get new data from database
+        # get new data from database and plot
+        # baro
+        baro_plot.dataplot.clear_data_regs()
         new_data = []
-        for sensor in sensorMeshList:
+        for sensor in baro_data_list:
             new_sensor_data = datasource.lrange(sensor, 0, data_len)
             # reverse, bc first element is the newest (not the oldest like deque)
             new_sensor_data.reverse()
-            # print(sensor + ':')
-            # print(new_sensor_data)
             new_data.append(new_sensor_data)
-        # print(np.array(new_data, dtype=np.float))
-
-        # plot data
         try:
-            if realtimeplotter.dataplot.option == DataplotOption.TIMESTAMP_NONE:
-                new_data = np.array(new_data, dtype=np.float)
-                realtimeplotter.dataplot.append(
-                    new_data, single=False)
-            elif realtimeplotter.dataplot.option == DataplotOption.TIMESTAMP_CUSTOM:
-                y = np.array(new_data[:-1], dtype=np.float)
-                x = np.array(new_data[-1], dtype=np.int64)
-                realtimeplotter.dataplot.append(
-                    y=y, x=x, single=False)
-            realtimeplotter.plot_data()
+            baro_y = np.array(new_data[:-1], dtype=np.float)
+            baro_x = np.array(new_data[-1], dtype=np.int64)
+            baro_plot.dataplot.append(
+                y=baro_y, x=baro_x, single=False)
+            baro_plot.plot_data()
         except Exception as e:
             print(e)
+        # tof
+        tof_plot.dataplot.clear_data_regs()
+        new_data = []
+        for sensor in tof_data_list:
+            new_sensor_data = datasource.lrange(sensor, 0, data_len)
+            # reverse, bc first element is the newest (not the oldest like deque)
+            new_sensor_data.reverse()
+            new_data.append(new_sensor_data)
+        try:
+            tof_y = np.array(new_data[:-1], dtype=np.float)
+            tof_x = np.array(new_data[-1], dtype=np.int64)
+            tof_plot.dataplot.append(
+                y=tof_y, x=tof_x, single=False)
+            tof_plot.plot_data()
+        except Exception as e:
+            print(e)
+        # height
+        h_plot.dataplot.clear_data_regs()
+        new_data = []
+        for sensor in h_data_list:
+            new_sensor_data = datasource.lrange(sensor, 0, data_len)
+            # reverse, bc first element is the newest (not the oldest like deque)
+            new_sensor_data.reverse()
+            new_data.append(new_sensor_data)
+        try:
+            h_y = np.array(new_data[:-1], dtype=np.float)
+            h_x = np.array(new_data[-1], dtype=np.int64)
+            h_plot.dataplot.append(
+                y=h_y, x=h_x, single=False)
+            h_plot.plot_data()
+        except Exception as e:
+            print(e)
+
         plt.pause(plot_update_interval)
     input("Exit(press any key)?")

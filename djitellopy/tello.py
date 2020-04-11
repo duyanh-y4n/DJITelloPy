@@ -137,7 +137,7 @@ class Tello(SensorMeshBase):
                         MessageFormatSeparator.SEPARATOR_HEAD.value
                     self.response_state = header + extra_data + \
                         self.response_state.decode('ASCII').replace(';', ':')
-                    print(self.response_state)
+                    # print(self.response_state)
                     # publish data to server
                     if upstream_enable:
                         self.upstream.publish(self.topic, self.response_state)

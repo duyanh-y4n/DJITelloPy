@@ -125,13 +125,24 @@ class FrontEnd(object):
             self.yaw_velocity = -S
         elif key == pygame.K_d:  # set yaw clockwise velocity
             self.yaw_velocity = S
-        elif key == pygame.K_g:  # get sensor data
-            self.tello.get_states(upstream_enable=True)
-            print(self.tello.response_state)
+        elif key == pygame.K_b:  # get  battery
+            print(self.tello.get_battery())
         elif key == pygame.K_c:  # send command from terminal
             command = input(
                 'Enter command (speed?time?battery?tof?height?baro?temp?wifi?sn?sdk?altitude?)')
             print(self.tello.send_read_command(command))
+        elif key == pygame.K_1:
+            print('flip right')
+            self.tello.flip('r')
+        elif key == pygame.K_2:
+            print('flip left')
+            self.tello.flip('l')
+        elif key == pygame.K_3:
+            print('flip forward')
+            self.tello.flip('f')
+        elif key == pygame.K_4:
+            print('flip back')
+            self.tello.flip('b')
 
     def keyup(self, key):
         """ Update velocities based on key released

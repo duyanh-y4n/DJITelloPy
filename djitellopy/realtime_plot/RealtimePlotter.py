@@ -7,6 +7,7 @@
 from .DataPlot import *
 import matplotlib.pyplot as plt
 import numpy as np
+import traceback
 
 # TODO: use enum for exceptions
 
@@ -34,17 +35,20 @@ class RealtimePlotter(object):
         # print(data)
         # set limits
         # TODO: auto ylim (cause bug, not work yet!!)
-        if ylim == [] and self.dataplot.option in [DataplotOption.TIMESTAMP_AUTO, DataplotOption.TIMESTAMP_CUSTOM]:
-            # last row is x-axis and wont be counted
-            ylim = [
-                np.min(data[:-1]),
-                np.max(data[:-1])
-            ]
-        elif ylim == [] and self.dataplot.option == DataplotOption.TIMESTAMP_NONE:
-            ylim = [
-                np.min(data[:])*0.9,
-                np.max(data[:])*1.1
-            ]
+        try:
+            if ylim == [] and self.dataplot.option in [DataplotOption.TIMESTAMP_AUTO, DataplotOption.TIMESTAMP_CUSTOM]:
+                # last row is x-axis and wont be counted
+                ylim = [
+                    np.min(data[:-1]),
+                    np.max(data[:-1])
+                ]
+            elif ylim == [] and self.dataplot.option == DataplotOption.TIMESTAMP_NONE:
+                ylim = [
+                    np.min(data[:])*0.9,
+                    np.max(data[:])*1.1
+                ]
+        except Exception as e:
+            traceback.print_tb()
         # print(ylim)
         self.axes.set_ylim(ylim)
         self.lines = []
