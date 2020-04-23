@@ -1,0 +1,3 @@
+tello.py - 140 - invalid literal for int() with base 10: '-1,-1,-1'
+tello.py - 141 - Response was is mid:-1;x:-100;y:-100;z:-100;mpry:-1,-1,-1;pitch:4;roll:0;yaw:108;vgx:0;vgy:0;vgz:0;templ:93;temph:96;tof:10;h:0;bat:42;baro:-61.33;time:41;agx:113.00;agy:-52.00;agz:-988.00;
+

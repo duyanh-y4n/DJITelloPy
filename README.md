@@ -12,6 +12,7 @@ $ pip install --upgrade pip
 $ git clone https://github.com/damiafuentes/TelloSDKPy.git
 $ cd TelloSDKPy
 $ pip install -r requirements.txt
+(use sudo if package not found)
 ```
 Sometimes you need to update the virtual environment indexes and skeletons in order for the `example.py` file to work with `pygame`. If you are working with PyCharm, this can be done to ```File > Invalidate Caches```
 
@@ -20,6 +21,52 @@ Sometimes you need to update the virtual environment indexes and skeletons in or
 ```
 $ pip install djitellopy
 ```
+
+## install pyenv (if system python version unsupported)
+* run pyenv_install.sh (for raspberry pi)
+* add to .bashrc (or .zshrc)
+```sh
+export PYENV_ROOT="$HOME/.pyenv"
+export PATH="$PYENV_ROOT/bin:$PATH"
+eval "$(pyenv init -)"
+```
+* install and use specific python version (recommend 3.6.10)
+```sh
+# example
+#  -install (this will last a few minute)
+pyenv install 3.6.10
+#  -use
+pyenv shell 3.6.10
+```
+* other usage of pyenv
+```sh
+# check installed python versions
+pyenv versions 
+
+# check currently used version
+pyenv version
+# or
+python --version
+```
+
+## Install on Raspberry Pi
+* install pyenv and run python 3.6.10 (see above)
+* install missing packages:
+```sh
+sudo apt-get install python-dev libsdl-image1.2-dev libsdl-mixer1.2-dev libsdl-ttf2.0-dev libsdl1.2-dev libsmpeg-dev python-numpy subversion libportmidi-dev ffmpeg libswscale-dev libavformat-dev libavcodec-dev libatlas3-base libjasper1 libqtgui4 libqt4-test
+```
+* install dependency:
+```sh
+sudo pip3 install -r requirement.txt
+```
+* troubleshooting:
+  * if libxxx.so.xx missing:
+```sh
+sudo apt-get install apt-file
+apt-file update
+apt-file search libxxx.so.xx
+```
+
 
 ## Usage
 
