@@ -7,10 +7,10 @@
 import redis
 import numpy as np
 import pandas
-export_file = '../test_report/Takeoff_Land_Test.csv'
-sensor_data_col = ['baro', 'tof', 'h', 'runtime']
-sensor_data_types = {'baro':float, 'tof':int, 'h':int, 'runtime':int}
-max_data_len = 500
+export_file = '../test_report/2020Apr26/Takeoff_Land_Test.csv'
+sensor_data_col = ['baro', 'tof', 'h', 'pitch', 'roll', 'yaw', 'vgx', 'vgy', 'vgz', 'agx', 'agy', 'agz', 'runtime']
+sensor_data_types = {'baro':float, 'tof':int, 'h':int, 'pitch':int, 'roll':int, 'yaw':int, 'vgx':int, 'vgy':int, 'vgz':int, 'agx':float, 'agy':float, 'agz':float, 'runtime':int}
+max_data_len = 2500
 
 redis = redis.StrictRedis(host='localhost', port=6379, db=0)
 keys = redis.keys('*')
