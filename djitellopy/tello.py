@@ -126,6 +126,7 @@ class Tello(SensorMeshBase):
 
     def get_states(self, upstream_enable=False):
         """This runs on background to recieve the state of Tello"""
+        self.LOGGER.debug('start get_state')
         while True:
             try:
                 self.response_state, _ = self.stateSocket.recvfrom(256)
@@ -163,7 +164,10 @@ class Tello(SensorMeshBase):
                     self.attitude = {'pitch': self.pitch,
                                      'roll': self.roll, 'yaw': self.yaw}
                     self.LOGGER.debug('get states')
+                    self.LOGGER.debug('baro ' + self.barometer + ' - battery ' + self.battery) #test
                     # time.sleep(0.5)
+                else:
+                    self.LOGGER.debug('no response!!!')
             except Exception as e:
                 self.LOGGER.error(e)
                 self.LOGGER.error(
